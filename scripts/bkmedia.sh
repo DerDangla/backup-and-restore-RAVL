@@ -14,6 +14,25 @@ backup_dir="../backup"
 
 source "./utils.sh"
 
+# Help function
+help() {
+     # Display Help
+     echo "The script aims to perform backup and restore to any or specified location in locations.cfg file."
+     echo
+     echo "Syntax for Backup: script_name.sh [-B|--backup] or [-B|--backup] [-L|--line] [location number]"
+     echo "Syntax for Restore: script_name.sh [-R|--restore] [version] or [-R|--restore] [version] [-L|--line] [location number]"
+     echo "Syntax for Restore with Integrity: script_name.sh [-R|--restore] [-I|--integrity] or [-R|--restore] [-I|--integrity] [-L|--line] [location number]"
+     echo
+     echo "Options:"
+     echo "[-B|--backup]                                                     Backup all location"
+     echo "[-B|--backup] [-L] [location number]                              Backup specific location"
+     echo "[-R|--restore] [version]                                          Restore specific version for all location"
+     echo "[-R|--restore] [version] [-L|--line] [location number]            Restore specific version for specific location"
+     echo "[-R|--restore] [-I|--integrity]                                   Restore phantom file to original state for all location"
+     echo "[-R|--restore] [-I|--integrity] [-L|--line] [location number]     Restore phantom file to original state for specific location"
+     echo
+}
+
 # Perform Back Up
 perform_backup() {
      local location="$1"
@@ -129,7 +148,8 @@ main() {
                     perform_backup "$location"
                done < "$config_file"
           else
-               echo "Invalid arguments. Usage: script_name [-B|--backup] [-L|--line] [line_number] or script_name [-B|--backup] or script_name [-R|--restore] [backup_version] [-L|--line] [line_number] or script_name [-R|--restore] [backup_version]"
+               echo "Invalid arguments."
+               echo "For Usage, Run command: script_name.sh [-H|--help]"
                exit 1
           fi
      elif [[ $1 =~ ^(-R|--restore) ]]; then
@@ -156,11 +176,15 @@ main() {
                     perform_restore "$location" "$2"
                done < "$config_file"
           else
-               echo "Invalid arguments. Usage: script_name [-B|--backup] [-L|--line] [line_number] or script_name [-B|--backup] or script_name [-R|--restore] [backup_version] [-L|--line] [line_number] or script_name [-R|--restore] [backup_version]"
+               echo "Invalid arguments."
+               echo "For Usage, Run command: script_name.sh [-H|--help]"
                exit 1
           fi
+     elif [[ $1 =~ ^(-H|--help) ]]; then
+          help
      else
-          echo "Invalid arguments. Usage: script_name [-B|--backup] [-L|--line] [line_number] or script_name [-B|--backup]"
+          echo "Invalid arguments."
+          echo "For Usage, Run command: script_name.sh [-H|--help]"
           exit 1
      fi
  }
