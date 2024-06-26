@@ -17,10 +17,8 @@ source "./utils.sh"
 # List location function - list out all locations from location.cfg file with preceding line number
 
 
-# Function to sanitize directory names for filenames
-#sanitize() {
-#     echo "$1" | sed 's|/|_|g' | sed 's|^_||' | sed 's|_$||'
-#}
+
+
 
 # Function to create backup folder
 #create_backup_dir() {
