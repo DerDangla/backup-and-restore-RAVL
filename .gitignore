@@ -3,3 +3,4 @@ logs/
 terraform/*.tfvars
 terraform/*.tfstate
 Vagrantfile
+.vagrant/

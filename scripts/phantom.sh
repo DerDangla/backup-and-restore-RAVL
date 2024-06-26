@@ -1,0 +1,1 @@
+sed -i "$(shuf -i 1-$(wc -l < /home/vagrant/dummy5.txt) -n 1)s/.*/New Content/" /home/vagrant/dummy5.txt

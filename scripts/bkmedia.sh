@@ -1,22 +1,22 @@
-#!/bin/bash
 ####################################
 #
-# Backup and Restore script.
-# Backup doesn't store hidden files with regex: */.*
-# Assumption that the following are installed in the backup directory server: md5 rsync
+# Backup and Restore script
+#
+# Backup function doesn't store hidden files with regex: */.*
+# Assumption that the following are installed in the backup directory server:
+#      coreutils (for checksum)
+#      rsync
 #
 ####################################
 
-# Configuration file containing server and directory information
-config_file="../config/locations.cfg"
-logs_dir="../logs"
-backup_dir="../backup"
+# Import configurations file
+source "../config/scripts.cfg"
 
+# Import utility functions
 source "./utils.sh"
 
 # Help function
 help() {
-     # Display Help
      echo "The script aims to perform backup and restore to any or specified location in locations.cfg file."
      echo
      echo "Syntax for Backup: script_name.sh [-B|--backup] or [-B|--backup] [-L|--line] [location number]"
@@ -51,7 +51,7 @@ perform_backup() {
                local original_checksum=$(grep "$file" "$checksum_file" | awk '{ print $1 }')
                local new_checksum=$(generate_checksum "$file")
                if [[ -n "$original_checksum" && "$original_checksum" != "$new_checksum" ]]; then
-                    mv "$file" "${file}.phantom"
+                    ssh -n ${user}@${hostname} mv "$file" "${file}.phantom"
                     echo "Original checksum: $original_checksum"
                     echo "New checksum: $new_checksum"
                     echo "Discrepancy detected in file: $file"
@@ -70,7 +70,7 @@ perform_backup() {
 
 # Perform Restore
 perform_restore() {
-     local location="$1" 
+     local location="$1"
      local version="$2"
      parse_location "$location"
      local sanitized_folder=$(sanitize "$path")
@@ -94,10 +94,12 @@ perform_restore_with_integrity() {
      # Find all filenames that contain .phantom
      local phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
 
-     echo "Performing Restore with Integrity for location: $location"
-
-     if [[ -f $phantom_files ]]; then
+     #local remote_phantom_files="ssh -n $user@$hostname ls $phantom_files"
+     : <<'EOF'
+     #if [[ -f $remote_phantom_files ]]; then
+     if ssh -n $user@$hostname "[ -f $phantom_files ]"; then
           echo "Integrity issue detected"
+          echo "Performing Restore with Integrity for location: $location"
           while IFS= read -r file; do
                local base_filepath_name=$(echo "$file" | sed 's/\.phantom$//')
                local matching_lines=$(grep "$base_filepath_name" "$checksum_file" | grep -v '\.phantom')
@@ -106,18 +108,58 @@ perform_restore_with_integrity() {
                echo "$restore_filename"
                local base_filename=$(basename "$phantom_files" .phantom)
                rsync -avz --progress $backup_dir/$hostname/$sanitized_folder/$restore_filename $location
-               local extract="tar -xzf $path/$restore_filename -C $path --wildcards './$base_filename' && rm $path/$restore_filename"
-               ssh -n $user@$hostname "$extract"
+               local extract_gnu="tar -xzf $path/$restore_filename -C $path --wildcards './$base_filename' && rm $path/$restore_filename"
+               local extract_bsd="tar -xzf $path/$restore_filename -C $path './$base_filename' && rm $path/$restore_filename"
+               ssh -n $user@$hostname "
+                   if tar --version 2>&1 | grep -q GNU; then
+                       $extract_gnu
+                   else
+                       $extract_bsd
+                   fi
+               "
+               ssh -n $user@$hostname $extract
                ssh -n $user@$hostname rm -rf $file
                grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
                echo "Restored specific file $base_filename for $location"
-          done <<< "$phantom_files"
+          done <<<"$phantom_files"
 
      else
           echo "No Integrity issue found."
      fi
+     echo "Restore with Integrity completed for location: $location"
+EOF
+
+     #while IFS= read -r file; do
+     for file in $phantom_files; do
+          echo "Checking file: $file"
+          if ssh -n "$user@$hostname" "[ -f $file ]"; then
+               local base_filepath_name=$(echo "$file" | sed 's/\.phantom$//')
+               local matching_lines=$(grep "$base_filepath_name" "$checksum_file" | grep -v '\.phantom')
+               local restore_filename=$(echo "$matching_lines" | awk '{print $3}')
+               echo "Tar.gz files for $base_filepath_name:"
+               echo "$restore_filename"
+               local base_filename=$(basename "$phantom_files" .phantom)
+               rsync -avz --progress $backup_dir/$hostname/$sanitized_folder/$restore_filename $location
+               local extract_gnu="tar -xzf $path/$restore_filename -C $path --wildcards './$base_filename' && rm $path/$restore_filename"
+               local extract_bsd="tar -xzf $path/$restore_filename -C $path './$base_filename' && rm $path/$restore_filename"
+               ssh -n $user@$hostname "
+                   if tar --version 2>&1 | grep -q GNU; then
+                       $extract_gnu
+                   else
+                       $extract_bsd
+                   fi
+               "
+               ssh -n $user@$hostname $extract
+               ssh -n $user@$hostname rm -rf $file
+               grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
+               echo "Restored specific file $base_filename for $location"
+          else
+               echo "No Integrity issue found."
+          fi
+     done
 
      echo "Restore with Integrity completed for location: $location"
+
 }
 
 # Main Code Logic
@@ -146,7 +188,7 @@ main() {
           elif [[ $# -eq 1 ]]; then
                while IFS= read -r location; do
                     perform_backup "$location"
-               done < "$config_file"
+               done <"$config_file"
           else
                echo "Invalid arguments."
                echo "For Usage, Run command: script_name.sh [-H|--help]"
@@ -170,11 +212,11 @@ main() {
           elif [[ $# -eq 2 && $2 =~ ^(-I|--integrity) ]]; then
                while IFS= read -r location; do
                     perform_restore_with_integrity "$location"
-               done < "$config_file"
+               done <"$config_file"
           elif [[ $# -eq 2 ]]; then
                while IFS= read -r location; do
                     perform_restore "$location" "$2"
-               done < "$config_file"
+               done <"$config_file"
           else
                echo "Invalid arguments."
                echo "For Usage, Run command: script_name.sh [-H|--help]"
@@ -187,6 +229,6 @@ main() {
           echo "For Usage, Run command: script_name.sh [-H|--help]"
           exit 1
      fi
- }
- 
- main "$@" 2>&1 | tee -a $logs_dir/$(date +'%Y%m%d_%H%M%S').log
+}
+
+main "$@" 2>&1 | tee -a $logs_dir/$(date +'%Y%m%d_%H%M%S').log
