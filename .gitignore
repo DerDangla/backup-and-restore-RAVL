@@ -2,3 +2,4 @@ backup/
 logs/
 terraform/*.tfvars
 terraform/*.tfstate
+Vagrantfile
