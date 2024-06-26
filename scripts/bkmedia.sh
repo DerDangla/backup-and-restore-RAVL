@@ -14,63 +14,6 @@ backup_dir="../backup"
 
 source "./utils.sh"
 
-# List location function - list out all locations from location.cfg file with preceding line number
-
-
-
-
-
-# Function to create backup folder
-#create_backup_dir() {
-#     if [[ ! -d "./backup/$hostname/$sanitized_folder" ]]; then
-#          echo "Creating ./backup/$hostname/$sanitized_folder folder."
-#          mkdir -p ./backup/$hostname/$sanitized_folder
-#     fi
-#}
-
-# Function to generate checksum
-#generate_checksum() {
-#     local file="$1"
-#     if [[ ${hostname} == "localhost" ]]; then
-#          md5sum "$file" | cut -d'/' -f1 | xargs
-#     else
-#          ssh -n ${user}@${hostname} "md5 -q '$file'"
-#     fi
-#}
-
-# Function to create or update the checksum file
-#create_or_update_checksum_file() {
-#     local checksum_file="$1" remote_files
-
-#     if [[ ! -f $checksum_file ]]; then
-#          touch $checksum_file
-#     fi
-
-#     remote_files=$(ssh -n ${user}@${hostname} "find $path -type f -not -path '*/.*'")
-
-#     while IFS= read -r file; do
-#          local checksum
-#          checksum=$(generate_checksum "$file")
-
-          # Check if the file is already in the checksum_file
-#          if grep -q "$file" "$checksum_file"; then
-               # Update the existing line with the new checksum and timestamp
-#               sed -i "s|.*$file.*|$checksum $file $backup_filename|" "$checksum_file"
-#          else
-               # Append new entry if the file is not found in the checksum_file
-#               echo "$checksum $file $backup_filename" >>"$checksum_file"
-#          fi
-#     done <<< "$remote_files"
-#}
-
-# Utility function to parse the location string
-#parse_location() {
-#     local location="$1"
-#     user=$(echo $location | cut -d'@' -f1)
-#     hostname=$(echo $location | cut -d'@' -f2 | cut -d':' -f1)
-#     path=$(echo $location | cut -d':' -f2)
-#}
-
 # Perform Back Up
 perform_backup() {
      local location="$1"
