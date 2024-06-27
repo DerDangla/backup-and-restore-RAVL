@@ -91,12 +91,15 @@ perform_restore_with_integrity() {
      local sanitized_folder=$(sanitize "$path")
      local checksum_file="$backup_dir/$hostname/$sanitized_folder/checksums.txt"
 
+     local remote_files=$(ssh -n ${user}@${hostname} "find ${path} -type f -name '*.phantom'")
+
      # Find all filenames that contain .phantom
      local phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
 
-     for file in $phantom_files; do
-          echo "Checking file: $file"
-          if ssh -n "$user@$hostname" "[ -f $file ]"; then
+     if [ -z "${remote_files}" ]; then
+          echo "No phantom files found on remote server: $location"
+     else
+          while IFS= read -r file; do
                local base_filepath_name=$(echo "$file" | sed 's/\.phantom$//')
                local matching_lines=$(grep "$base_filepath_name" "$checksum_file" | grep -v '\.phantom')
                local restore_filename=$(echo "$matching_lines" | awk '{print $3}')
@@ -104,10 +107,8 @@ perform_restore_with_integrity() {
                echo "$restore_filename"
                local base_filename=$(basename "$file" .phantom)
                rsync -avz --progress $backup_dir/$hostname/$sanitized_folder/$restore_filename $location
-               echo "base filename before local extract declration: $base_filename"
                local extract_gnu="tar -xzf $path/$restore_filename -C $path --wildcards './$base_filename' && rm $path/$restore_filename"
                local extract_bsd="tar -xzf $path/$restore_filename -C $path './$base_filename' && rm $path/$restore_filename"
-               echo "base filename after local extract declration: $base_filename"
                ssh -n $user@$hostname "
                    if tar --version 2>&1 | grep -q GNU; then
                        $extract_gnu
@@ -115,18 +116,15 @@ perform_restore_with_integrity() {
                        $extract_bsd
                    fi
                "
-               # ssh -n $user@$hostname $extract
                echo "Deleteing $file from $location"
                ssh -n $user@$hostname rm -rf $file
-               grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
+               local phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
+               for file in $phantom_files; do
+                    grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
+               done
                echo "Restored specific file $base_filename for $location"
-          else
-               echo "No Integrity issue found."
-          fi
-     done
-
-     echo "Restore with Integrity completed for location: $location"
-
+          done <<<"$remote_files"
+     fi
 }
 
 # Main Code Logic
