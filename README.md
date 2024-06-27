@@ -6,13 +6,16 @@
 
 This is a simple backup and restore script that detects ghost files and restore it to original state
 
+# Pre-requisites
+1. Ensure that coreutils (for checksum) and rsync is install in your configured location
+2. ssh keys are setup between servers
+
 # How to use
 
 1. Download the folders and contents of /config and /scripts
 2. Configure your locations.cfg file with your respective [user]@[hostname]:/path/to/folder/
 3. Configure your config file with your desired logs and backup folders
-4. Ensure ssh keys are setup between servers
-5. run ./scripts/bkmedia.sh
+4. run ./scripts/bkmedia.sh
 
 <details>
 	<summary>Built-in help message</summary>
