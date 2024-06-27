@@ -27,6 +27,7 @@ It has functionality to detect files modified by bad actors and restore it to or
 
 Syntax:
 
+ For Locations: script_name.sh
  For Backup: script_name.sh [-B|--backup] or [-B|--backup] [-L|--line] [location number]
  For Restore: script_name.sh [-R|--restore] [version] or [-R|--restore] [version] [-L|--line] [location number]
  For Restore with Integrity: script_name.sh [-R|--restore] [-I|--integrity] or [-R|--restore] [-I|--integrity] [-L|--line] [location number]
@@ -34,6 +35,7 @@ Syntax:
 Options:
 
  SWITCH                                                            FUNCTION
+ [no command]                                                      List all locations
  [-B|--backup]                                                     Backup all location
  [-B|--backup] [-L] [location number]                              Backup specific location
  [-R|--restore] [version]                                          Restore specific version for all location
