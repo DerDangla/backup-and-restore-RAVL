@@ -10,20 +10,25 @@
 ####################################
 
 # Import configurations file
-source "../config/scripts.cfg"
+source "../configs/config"
 
 # Import utility functions
 source "./utils.sh"
 
 # Help function
 help() {
-     echo "The script aims to perform backup and restore to any or specified location in locations.cfg file."
+     echo "This backup and restore script is used for performing backup and restoration to all or specified location in locations.cfg file."
+     echo "It has functionality to detect files modified by bad actors and restore it to original state"
      echo
-     echo "Syntax for Backup: script_name.sh [-B|--backup] or [-B|--backup] [-L|--line] [location number]"
-     echo "Syntax for Restore: script_name.sh [-R|--restore] [version] or [-R|--restore] [version] [-L|--line] [location number]"
-     echo "Syntax for Restore with Integrity: script_name.sh [-R|--restore] [-I|--integrity] or [-R|--restore] [-I|--integrity] [-L|--line] [location number]"
+     echo Syntax:
+     echo
+     echo "For Backup: script_name.sh [-B|--backup] or [-B|--backup] [-L|--line] [location number]"
+     echo "For Restore: script_name.sh [-R|--restore] [version] or [-R|--restore] [version] [-L|--line] [location number]"
+     echo "For Restore with Integrity: script_name.sh [-R|--restore] [-I|--integrity] or [-R|--restore] [-I|--integrity] [-L|--line] [location number]"
      echo
      echo "Options:"
+     echo
+     echo "SWITCH                                                            FUNCTION"
      echo "[-B|--backup]                                                     Backup all location"
      echo "[-B|--backup] [-L] [location number]                              Backup specific location"
      echo "[-R|--restore] [version]                                          Restore specific version for all location"
