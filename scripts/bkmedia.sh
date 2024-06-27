@@ -22,6 +22,7 @@ help() {
      echo
      echo Syntax:
      echo
+     echo "For Locations: script_name.sh"
      echo "For Backup: script_name.sh [-B|--backup] or [-B|--backup] [-L|--line] [location number]"
      echo "For Restore: script_name.sh [-R|--restore] [version] or [-R|--restore] [version] [-L|--line] [location number]"
      echo "For Restore with Integrity: script_name.sh [-R|--restore] [-I|--integrity] or [-R|--restore] [-I|--integrity] [-L|--line] [location number]"
@@ -29,6 +30,7 @@ help() {
      echo "Options:"
      echo
      echo "SWITCH                                                            FUNCTION"
+     echo "[no command]                                                      List all locations"
      echo "[-B|--backup]                                                     Backup all location"
      echo "[-B|--backup] [-L] [location number]                              Backup specific location"
      echo "[-R|--restore] [version]                                          Restore specific version for all location"
