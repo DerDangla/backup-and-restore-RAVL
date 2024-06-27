@@ -7,7 +7,7 @@
 This is a simple backup and restore script that detects ghost files and restore it to original state
 
 # Pre-requisites
-1. Ensure that coreutils (for checksum) and rsync is install in your configured location
+1. Ensure that coreutils (for checksum) and rsync are installed in your configured location
 2. ssh keys are setup between servers
 
 # How to use
