@@ -10,7 +10,7 @@ list_locations() {
      while IFS= read -r location; do
           echo "$line_number | $location"
           ((line_number++))
-     done <$config_file
+     done <$locations_file
 }
 
 # Function to sanitize directory names for filenames | how to use: santize "/your/home/directory/""
@@ -45,24 +45,28 @@ create_or_update_checksum_file() {
      local checksum_file="$1" remote_files
 
      if [[ ! -f $checksum_file ]]; then
+          echo "Generating checksum file for $location"
           touch $checksum_file
      fi
 
      remote_files=$(ssh -n ${user}@${hostname} "find $path -type f -not -path '*/.*'")
-
+     
+     echo "Updating checksum file"
      while IFS= read -r file; do
           local checksum
           checksum=$(generate_checksum "$file")
 
           # Check if the file is already in the checksum_file
           if grep -q "$file" "$checksum_file"; then
-               # Update the existing line with the new checksum and timestamp
+               # Update the existing line with the new checksum and zip
                sed -i "s|.*$file.*|$checksum $file $backup_filename|" "$checksum_file"
           else
                # Append new entry if the file is not found in the checksum_file
                echo "$checksum $file $backup_filename" >>"$checksum_file"
           fi
      done <<<"$remote_files"
+     
+     echo "Checksum file update COMPLETED"
 }
 
 # Function to parse the location string | how to use: parse_location "user@hostname:/location/to/file"

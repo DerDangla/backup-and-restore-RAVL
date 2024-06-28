@@ -30,9 +30,9 @@ help() {
      echo "Options:"
      echo
      echo "SWITCH                                                            FUNCTION"
-     echo "[no command]                                                      List all locations"
+     echo "[no command]                                                      List all locations and its line number"
      echo "[-B|--backup]                                                     Backup all location"
-     echo "[-B|--backup] [-L] [location number]                              Backup specific location"
+     echo "[-B|--backup] [-L|--line] [location number]                       Backup specific location"
      echo "[-R|--restore] [version]                                          Restore specific version for all location"
      echo "[-R|--restore] [version] [-L|--line] [location number]            Restore specific version for specific location"
      echo "[-R|--restore] [-I|--integrity]                                   Restore phantom file to original state for all location"
@@ -48,28 +48,35 @@ perform_backup() {
      local sanitized_folder=$(sanitize "$path")
      create_dir_if_not_exists "$backup_dir/$hostname/$sanitized_folder"
 
-     local backup_filename="$(date +'%Y%m%d_%H%M%S').tar.gz"
+     local backup_filename="$(date +'%Y%m%d_%H%M%S').tar.gz" #define the backup filename
      local checksum_file="$backup_dir/$hostname/$sanitized_folder/checksums.txt"
+
+     echo "Performing backup for $location"
 
      if [[ -f $checksum_file ]]; then
           local remote_files=$(ssh -n ${user}@${hostname} "find $path -type f -not -path '*/.*'")
-          # Integrity check
+          # Perform integrity check for each file in the location
           while IFS= read -r file; do
                local original_checksum=$(grep "$file" "$checksum_file" | awk '{ print $1 }')
                local new_checksum=$(generate_checksum "$file")
+               # If the original checksum is not empty - meaning that the file is not new
+               # and the original and new checksum are not equals
                if [[ -n "$original_checksum" && "$original_checksum" != "$new_checksum" ]]; then
-                    ssh -n ${user}@${hostname} mv "$file" "${file}.phantom"
+                    ssh -n ${user}@${hostname} mv "$file" "${file}.phantom" #rename the impacted file to add .phantom
+                    echo "Discrepancy detected in file: $file"
                     echo "Original checksum: $original_checksum"
                     echo "New checksum: $new_checksum"
-                    echo "Discrepancy detected in file: $file"
                fi
           done <<<"$remote_files"
      fi
 
      create_or_update_checksum_file "$checksum_file"
 
+     # Compress the files in the folder into one zip file
      local compress="touch $path/$backup_filename && tar --exclude=$backup_filename --exclude='*/.*' -zcf $path/$backup_filename -C $path ."
      ssh -n ${user}@${hostname} $compress
+
+     # Move the zip file to the backup directory
      rsync -avz --progress --remove-source-files $location/$backup_filename $backup_dir/$hostname/$sanitized_folder
 
      echo "Backup completed for $location"
@@ -83,12 +90,17 @@ perform_restore() {
      local sanitized_folder=$(sanitize "$path")
      local restore_filename=$(ls -t $backup_dir/$hostname/$sanitized_folder | grep -v 'checksums.txt' | sed -n ${version}p)
 
-     echo "Restoring backup from $restore_filename to $location"
-     rsync -avz --progress $backup_dir/$hostname/$sanitized_folder/$restore_filename $location
-     extract="tar -xzf $path/$restore_filename -C $path && rm $path/$restore_filename"
-     ssh -n $user@$hostname $extract
+     if [ -z "$restore_filename" ]; then
+          echo "No version $version exists for $location"
+     else
+          echo "Restoring backup from $restore_filename to $location"
+          rsync -avz --progress $backup_dir/$hostname/$sanitized_folder/$restore_filename $location
+          extract="tar -xzf $path/$restore_filename -C $path && rm $path/$restore_filename"
+          ssh -n $user@$hostname $extract
 
-     echo "Restore completed for $location"
+          echo "Restore completed for $location"
+     fi
+
 }
 
 # Perform Restore with Integrity
@@ -137,8 +149,8 @@ perform_restore_with_integrity() {
 # Main Code Logic
 main() {
      # Validate and ensure that the configuration file exists
-     if [[ ! -f $config_file ]]; then
-          echo "Error: Configuration file $config_file not found."
+     if [[ ! -f $locations_file ]]; then
+          echo "Error: Locations file ./configs/$locations_file not found."
           exit 1
      fi
 
@@ -151,16 +163,16 @@ main() {
 
      if [[ $1 =~ ^(-B|--backup) ]]; then
           if [[ $# -eq 3 && $2 =~ ^(-L|--line) ]]; then
-               local location=$(sed -n $3p $config_file)
+               local location=$(sed -n $3p $locations_file)
                if [[ -z $location ]]; then
-                    echo "Error: Invalid line number."
+                    echo "Error: Invalid line number. To find valid line number, run the command: ./bkmedia.sh OR ./bkmedia.sh [-H|--help]"
                     exit 1
                fi
                perform_backup "$location"
           elif [[ $# -eq 1 ]]; then
                while IFS= read -r location; do
                     perform_backup "$location"
-               done <"$config_file"
+               done <"$locations_file"
           else
                echo "Invalid arguments."
                echo "For Usage, Run command: script_name.sh [-H|--help]"
@@ -168,14 +180,14 @@ main() {
           fi
      elif [[ $1 =~ ^(-R|--restore) ]]; then
           if [[ $# -eq 4 && $2 =~ ^(-I|--integrity) && $3 =~ ^(-L|--line) ]]; then
-               local location=$(sed -n $4p $config_file)
+               local location=$(sed -n $4p $locations_file)
                if [[ -z $location ]]; then
                     echo "Error: Invalid line number."
                     exit 1
                fi
                perform_restore_with_integrity "$location"
           elif [[ $# -eq 4 && $3 =~ ^(-L|--line) ]]; then
-               local location=$(sed -n $4p $config_file)
+               local location=$(sed -n $4p $locations_file)
                if [[ -z $location ]]; then
                     echo "Error: Invalid line number."
                     exit 1
@@ -184,11 +196,11 @@ main() {
           elif [[ $# -eq 2 && $2 =~ ^(-I|--integrity) ]]; then
                while IFS= read -r location; do
                     perform_restore_with_integrity "$location"
-               done <"$config_file"
+               done <"$locations_file"
           elif [[ $# -eq 2 ]]; then
                while IFS= read -r location; do
                     perform_restore "$location" "$2"
-               done <"$config_file"
+               done <"$locations_file"
           else
                echo "Invalid arguments."
                echo "For Usage, Run command: script_name.sh [-H|--help]"
