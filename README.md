@@ -18,7 +18,7 @@ This is a simple backup and restore script that detects ghost files and restore 
 3. Configure your config file with your desired logs and backup folders
 4. run ./scripts/bkmedia.sh
 
-<b>Note: Backup function doesn't store hidden files with regex: */.* </b>
+<b>Note: Backup function doesn't store hidden files with regex: \*/.\* </b>
 
 <details>
 	<summary>Built-in help message</summary>
