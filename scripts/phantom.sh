@@ -21,4 +21,4 @@ while IFS= read -r location; do
         echo "Not enough files to modify."
     fi
 
-done <"$config_file"
+done <"$locations_file"
