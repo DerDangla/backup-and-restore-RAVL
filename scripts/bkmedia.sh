@@ -51,7 +51,7 @@ perform_backup() {
      local backup_filename="$(date +'%Y%m%d_%H%M%S').tar.gz" #define the backup filename
      local checksum_file="$backup_dir/$hostname/$sanitized_folder/checksums.txt"
 
-     echo "Performing backup for $location"
+     echo "Start backup process for $location"
 
      if [[ -f $checksum_file ]]; then
           local remote_files=$(ssh -n ${user}@${hostname} "find $path -type f -not -path '*/.*'")
@@ -72,6 +72,7 @@ perform_backup() {
 
      create_or_update_checksum_file "$checksum_file"
 
+echo "Executing backup..."
      # Compress the files in the folder into one zip file
      local compress="touch $path/$backup_filename && tar --exclude=$backup_filename --exclude='*.phantom' --exclude='*/.*' -zcf $path/$backup_filename -C $path ."
      ssh -n ${user}@${hostname} $compress
@@ -79,7 +80,7 @@ perform_backup() {
      # Move the zip file to the backup directory
      rsync -avz --progress --remove-source-files $location/$backup_filename $backup_dir/$hostname/$sanitized_folder
 
-     echo "Backup completed for $location"
+     echo "Completed backup for $location"
 }
 
 # Perform Restore
@@ -93,12 +94,12 @@ perform_restore() {
      if [ -z "$restore_filename" ]; then
           echo "No version $version exists for $location"
      else
-          echo "Restoring backup from $restore_filename to $location"
+     echo "Start restore process for $location"
+          echo "Restoring backup from $restore_filename"
           rsync -avz --progress $backup_dir/$hostname/$sanitized_folder/$restore_filename $location
           extract="tar -xzf $path/$restore_filename -C $path && rm $path/$restore_filename"
           ssh -n $user@$hostname $extract
-
-          echo "Restore completed for $location"
+          echo "Completed restore for $location"
      fi
 
 }
@@ -113,24 +114,26 @@ perform_restore_with_integrity() {
      local remote_phantom_files=$(ssh -n ${user}@${hostname} "find ${path} -type f -name '*.phantom'")
 
      # Find all filenames that contain .phantom
-     local checksum_phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
+     #local checksum_phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
 
-     if [ -z "${remote_phantom_files}"]; then #check if no phantom file in the location
+     if [ -z "${remote_phantom_files}" ]; then #check if no phantom file in the location
           echo "No phantom files found on remote server: $location"
-          if [ -n "${checksum_phantom_files}" ]; then #check if there is phantom file in checksum file
-               echo "Cleaning the phantom file existing in the checksum file"
-               for file in $checksum_phantom_files; do
-                    grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
-               done
-          fi
+          #if [ -n "${checksum_phantom_files}" ]; then #check if there is phantom file in checksum file
+          #     echo "Cleaning the phantom file existing in the checksum file"
+          #     for file in $checksum_phantom_files; do
+          #          grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
+          #     done
+          #fi
      else
+     echo "Start restore process for $location"
           while IFS= read -r file; do
                local base_filepath_name=$(echo "$file" | sed 's/\.phantom$//')
                local matching_lines=$(grep "$base_filepath_name" "$checksum_file" | grep -v '\.phantom')
                local restore_filename=$(echo "$matching_lines" | awk '{print $3}')
-               echo "Tar.gz files for $base_filepath_name:"
-               echo "$restore_filename"
+               echo "Restoring file: $base_filepath_name"
+               echo "Source zip file: $restore_filename"
                local base_filename=$(basename "$file" .phantom)
+               echo "Extracting $file to $location"
                rsync -avz --progress $backup_dir/$hostname/$sanitized_folder/$restore_filename $location
                local extract_gnu="tar -xzf $path/$restore_filename -C $path --wildcards './$base_filename' && rm $path/$restore_filename"
                local extract_bsd="tar -xzf $path/$restore_filename -C $path './$base_filename' && rm $path/$restore_filename"
@@ -141,13 +144,13 @@ perform_restore_with_integrity() {
                        $extract_bsd
                    fi
                "
-               echo "Deleteing $file from $location"
+               echo "Deleting $file from $location"
                ssh -n $user@$hostname rm -rf $file
                #local checksum_phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
                #for file in $checksum_phantom_files; do
-               grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
+               #grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
                #done
-               echo "Restored specific file $base_filename for $location"
+               echo "Completed restoring $base_filename to its original state for $location"
           done <<<"$remote_phantom_files"
      fi
 }

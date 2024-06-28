@@ -45,13 +45,13 @@ create_or_update_checksum_file() {
      local checksum_file="$1" remote_files
 
      if [[ ! -f $checksum_file ]]; then
-          echo "Generating checksum file for $location"
           touch $checksum_file
+          echo "Checksum file generated for $location"
      fi
 
      remote_files=$(ssh -n ${user}@${hostname} "find $path -type f -not -path '*/.*' -not -name '*.phantom'")
      
-     echo "Updating checksum file"
+     echo "Updating checksum....."
      while IFS= read -r file; do
           local checksum
           checksum=$(generate_checksum "$file")
@@ -66,7 +66,7 @@ create_or_update_checksum_file() {
           fi
      done <<<"$remote_files"
      
-     echo "Checksum file update COMPLETED"
+     echo "Completed checksum update"
 }
 
 # Function to parse the location string | how to use: parse_location "user@hostname:/location/to/file"
