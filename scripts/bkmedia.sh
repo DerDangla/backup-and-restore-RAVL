@@ -73,7 +73,7 @@ perform_backup() {
      create_or_update_checksum_file "$checksum_file"
 
      # Compress the files in the folder into one zip file
-     local compress="touch $path/$backup_filename && tar --exclude=$backup_filename --exclude='*/.*' -zcf $path/$backup_filename -C $path ."
+     local compress="touch $path/$backup_filename && tar --exclude=$backup_filename --exclude='*.phantom' --exclude='*/.*' -zcf $path/$backup_filename -C $path ."
      ssh -n ${user}@${hostname} $compress
 
      # Move the zip file to the backup directory
@@ -110,13 +110,19 @@ perform_restore_with_integrity() {
      local sanitized_folder=$(sanitize "$path")
      local checksum_file="$backup_dir/$hostname/$sanitized_folder/checksums.txt"
 
-     local remote_files=$(ssh -n ${user}@${hostname} "find ${path} -type f -name '*.phantom'")
+     local remote_phantom_files=$(ssh -n ${user}@${hostname} "find ${path} -type f -name '*.phantom'")
 
      # Find all filenames that contain .phantom
-     local phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
+     local checksum_phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
 
-     if [ -z "${remote_files}" ]; then
+     if [ -z "${remote_phantom_files}"]; then #check if no phantom file in the location
           echo "No phantom files found on remote server: $location"
+          if [ -n "${checksum_phantom_files}" ]; then #check if there is phantom file in checksum file
+               echo "Cleaning the phantom file existing in the checksum file"
+               for file in $checksum_phantom_files; do
+                    grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
+               done
+          fi
      else
           while IFS= read -r file; do
                local base_filepath_name=$(echo "$file" | sed 's/\.phantom$//')
@@ -137,12 +143,12 @@ perform_restore_with_integrity() {
                "
                echo "Deleteing $file from $location"
                ssh -n $user@$hostname rm -rf $file
-               local phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
-               for file in $phantom_files; do
-                    grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
-               done
+               #local checksum_phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
+               #for file in $checksum_phantom_files; do
+               grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
+               #done
                echo "Restored specific file $base_filename for $location"
-          done <<<"$remote_files"
+          done <<<"$remote_phantom_files"
      fi
 }
 

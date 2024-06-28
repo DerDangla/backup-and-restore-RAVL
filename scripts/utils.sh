@@ -49,7 +49,7 @@ create_or_update_checksum_file() {
           touch $checksum_file
      fi
 
-     remote_files=$(ssh -n ${user}@${hostname} "find $path -type f -not -path '*/.*'")
+     remote_files=$(ssh -n ${user}@${hostname} "find $path -type f -not -path '*/.*' -not -name '*.phantom'")
      
      echo "Updating checksum file"
      while IFS= read -r file; do
