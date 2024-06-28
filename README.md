@@ -18,6 +18,8 @@ This is a simple backup and restore script that detects ghost files and restore 
 3. Configure your config file with your desired logs and backup folders
 4. run ./scripts/bkmedia.sh
 
+<b>Note: Backup function doesn't store hidden files with regex: */.* </b>
+
 <details>
 	<summary>Built-in help message</summary>
 
@@ -50,8 +52,9 @@ Options:
 # Future improvements
 
 1. Modify backup script to add retention period for backed up files. (retention period to be configured in config file)
-2. Use any cloud (such as s3) to store your backup files.
-3. Parallel processing to handle multiple files at the same time to reduce overall runtime.
+2. Add logic and configuration for max size of all files in the folder and split the zip file
+3. Use any cloud (such as s3) to store your backup files.
+4. Parallel processing to handle multiple files at the same time to reduce overall runtime.
 
 
 
