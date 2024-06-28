@@ -37,7 +37,7 @@ Syntax:
 Options:
 
  SWITCH                                                            FUNCTION
- [no command]                                                      List all locations
+ [no command]                                                      List all locations and its line number
  [-B|--backup]                                                     Backup all location
  [-B|--backup] [-L] [location number]                              Backup specific location
  [-R|--restore] [version]                                          Restore specific version for all location
