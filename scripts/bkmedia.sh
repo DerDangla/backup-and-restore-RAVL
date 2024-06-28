@@ -113,17 +113,8 @@ perform_restore_with_integrity() {
 
      local remote_phantom_files=$(ssh -n ${user}@${hostname} "find ${path} -type f -name '*.phantom'")
 
-     # Find all filenames that contain .phantom
-     #local checksum_phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
-
      if [ -z "${remote_phantom_files}" ]; then #check if no phantom file in the location
           echo "No phantom files found on remote server: $location"
-          #if [ -n "${checksum_phantom_files}" ]; then #check if there is phantom file in checksum file
-          #     echo "Cleaning the phantom file existing in the checksum file"
-          #     for file in $checksum_phantom_files; do
-          #          grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
-          #     done
-          #fi
      else
      echo "Start restore process for $location"
           while IFS= read -r file; do
@@ -133,7 +124,7 @@ perform_restore_with_integrity() {
                echo "Restoring file: $base_filepath_name"
                echo "Source zip file: $restore_filename"
                local base_filename=$(basename "$file" .phantom)
-               echo "Extracting $file to $location"
+               echo "Extracting $base_filepath_name to $location"
                rsync -avz --progress $backup_dir/$hostname/$sanitized_folder/$restore_filename $location
                local extract_gnu="tar -xzf $path/$restore_filename -C $path --wildcards './$base_filename' && rm $path/$restore_filename"
                local extract_bsd="tar -xzf $path/$restore_filename -C $path './$base_filename' && rm $path/$restore_filename"
@@ -146,10 +137,6 @@ perform_restore_with_integrity() {
                "
                echo "Deleting $file from $location"
                ssh -n $user@$hostname rm -rf $file
-               #local checksum_phantom_files=$(grep '\.phantom' "$checksum_file" | awk '{print $2}')
-               #for file in $checksum_phantom_files; do
-               #grep -v "$file" "$checksum_file" >"$checksum_file.tmp" && mv "$checksum_file.tmp" "$checksum_file"
-               #done
                echo "Completed restoring $base_filename to its original state for $location"
           done <<<"$remote_phantom_files"
      fi
