@@ -4,7 +4,7 @@
 
 -----------
 
-This is a simple backup and restore script that detects ghost files and restore it to original state. Update read me again again
+This is a simple backup and restore script that detects ghost files and restore it to original state. Update read me again again again
 
 # Pre-requisites
 
